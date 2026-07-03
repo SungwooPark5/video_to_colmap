@@ -2,13 +2,15 @@
 set -euo pipefail
 
 usage() {
-    echo "Usage: $(basename "$0") <image_dir> <workspace_dir> [--dense] [--exhaustive] [--camera-model <MODEL>] [--nas-dest <path>]" >&2
+    echo "Usage: $(basename "$0") <image_dir> <workspace_dir> [--dense] [--exhaustive] [--camera-model <MODEL>] [--nas-dest <path>] [--no-visualize] [--visualize-format {ply,glb,both}]" >&2
     exit 1
 }
 
 if [[ $# -lt 2 ]]; then
     usage
 fi
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 IMAGE_PATH="$1"
 WORKSPACE="$2"
@@ -18,6 +20,8 @@ DENSE=0
 EXHAUSTIVE=0
 CAMERA_MODEL="SIMPLE_RADIAL"
 NAS_DEST=""
+VISUALIZE=1
+VISUALIZE_FORMAT="ply"
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
@@ -35,6 +39,14 @@ while [[ $# -gt 0 ]]; do
             ;;
         --nas-dest)
             NAS_DEST="${2:?--nas-dest requires a path}"
+            shift 2
+            ;;
+        --no-visualize)
+            VISUALIZE=0
+            shift
+            ;;
+        --visualize-format)
+            VISUALIZE_FORMAT="${2:?--visualize-format requires ply|glb|both}"
             shift 2
             ;;
         *)
@@ -87,6 +99,10 @@ for model_dir in "$SPARSE_PATH"/*/; do
             --input_path "$model_dir" \
             --output_path "${model_dir}/points3D.ply" \
             --output_type PLY
+
+        if [[ "$VISUALIZE" == "1" ]]; then
+            python3 "$SCRIPT_DIR/visualize_poses.py" "$model_dir" --format "$VISUALIZE_FORMAT"
+        fi
     fi
 done
 
